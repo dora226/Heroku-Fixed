@@ -775,7 +775,7 @@ class Heroku:
             await asyncio.sleep(1.5)
             try:
                 result = await inutils._get_webapp_session(url)
-            except:
+            except Exception:
                 continue
             break
         else:
@@ -790,7 +790,7 @@ class Heroku:
 
         try:
             await client.get_entity(f"{username}")
-        except:
+        except Exception:
             return True
 
     async def _initial_setup(self) -> bool:
@@ -1207,9 +1207,9 @@ class Heroku:
                     ]
                 else:
                     logging.error(
-                        f"Exception on loading allowed beta testers ids: {response.status}"
+                        f"Failed to load beta testers list: {response.status}"
                     )
-                    return []
+                    allowed_ids = []
 
         await asyncio.gather(
             *[self.amain_wrapper(client, allowed_ids) for client in self.clients]
@@ -1225,7 +1225,7 @@ class Heroku:
                 try:
                     await inline._dp.stop_polling()
                     await inline.bot.session.close()
-                except:
+                except Exception:
                     pass
         for c in self.clients:
             await c.disconnect()
@@ -1257,7 +1257,7 @@ class Heroku:
             logging.info("Bye!")
             try:
                 self.loop.run_until_complete(self._shutdown_handler())
-            except:
+            except Exception:
                 pass
 
 

@@ -346,6 +346,15 @@ async def answer(
     )
 
     if isinstance(response, str) and not kwargs.pop("asfile", False):
+        # Auto-wrap text responses in blockquote for modern styling
+        # unless it's a raw file/caption or already has blockquote
+        if (
+            not kwargs.get("caption") 
+            and not response.startswith("<blockquote>")
+            and not response.startswith("http")
+            and len(response) > 3
+        ):
+            response = f"<blockquote>{response}</blockquote>"
         text, entities = parse_mode.parse(response)
 
         if len(text) >= 4096 and not hasattr(message, "heroku_grepped"):
