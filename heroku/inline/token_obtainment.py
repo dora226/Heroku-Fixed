@@ -41,7 +41,7 @@ class TokenObtainment(InlineUnit):
             username = f"@{username}"
             try:
                 await self._client.get_entity(username)
-            except ValueError:
+            except Exception:
                 pass
             else:
                 uid = utils.rand(6)

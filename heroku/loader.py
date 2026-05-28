@@ -1039,7 +1039,14 @@ class Modules:
                         ]
                     )
 
-                    result = await self.lookup("loader").install_requirements(
+                    loader_mod = self.lookup("loader")
+                    if not loader_mod:
+                        logger.warning(
+                            "Loader module not found, can't install requirements: %s",
+                            requirements,
+                        )
+                        raise
+                    result = await loader_mod.install_requirements(
                         requirements
                     )
 
