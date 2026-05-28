@@ -146,8 +146,7 @@ class TokenObtainment(InlineUnit):
             passed_token = getattr(arguments, "bot_token", None)
             if passed_token:
                 logger.info("Token found in CLI arguments, validating...")
-                import aiohttp as _aiohttp
-                async with _aiohttp.ClientSession() as sess:
+                async with aiohttp.ClientSession() as sess:
                     try:
                         async with sess.get(
                             f"https://api.telegram.org/bot{passed_token}/getMe"
@@ -161,8 +160,8 @@ class TokenObtainment(InlineUnit):
                                     return True
                     except Exception as e:
                         logger.error("Token validation failed: %s", e)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error("CLI token check failed: %s", e)
 
         if self._token:
             return True
