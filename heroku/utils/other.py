@@ -208,9 +208,9 @@ def get_iso_time() -> str:
     Get current time in ISO format
     :return: ISO formatted time string
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
 
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.now(timezone.utc).isoformat() + "Z"
 
 
 def safe_getattr(obj, attr, default=None):

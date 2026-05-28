@@ -45,6 +45,7 @@ def deps():
             "-q",
             "--disable-pip-version-check",
             "--no-warn-script-location",
+            "--break-system-packages",
             "-r",
             "requirements.txt",
         ],

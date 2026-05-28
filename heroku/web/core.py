@@ -109,7 +109,7 @@ class Web(root.Web):
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         self.port = os.environ.get("PORT", port)
-        site = web.TCPSite(self.runner, None, self.port)
+        site = web.TCPSite(self.runner, "0.0.0.0", self.port)
         self.proxypasser = proxypass.ProxyPasser(port=self.port)
         await site.start()
 
