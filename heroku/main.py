@@ -721,11 +721,28 @@ class Heroku:
         return False
 
     async def _phone_login(self, client: CustomTelegramClient) -> bool:
-        phone = input(
+        phone = get_config_key("phone") or input(
             "\033[0;96mEnter phone: \033[0m" if self.arguments.tty else "Enter phone: "
         )
 
-        await client.start(phone)
+        def code_handler():
+            code = input('Please enter the code you received: ').strip()
+            if code:
+                return code
+            code_file = "/tmp/heroku_code.txt"
+            print("\n[HEROKU] Waiting for auth code...")
+            print("[HEROKU] Run: echo YOUR_CODE > /tmp/heroku_code.txt")
+            while True:
+                import time
+                time.sleep(3)
+                if os.path.exists(code_file):
+                    with open(code_file) as f:
+                        code = f.read().strip()
+                    if code:
+                        os.unlink(code_file)
+                        return code
+
+        await client.start(phone, code_callback=code_handler)
 
         me = await client.get_me()
         telegram_id = me.id
@@ -737,9 +754,15 @@ class Heroku:
         db = database.Database(client)
         await db.init()
 
-        while bot := input(
-            "You can enter a custom bot username or leave it empty and Heroku will generate a random one: "
-        ):
+        try:
+            bot = input(
+                "You can enter a custom bot username or leave it empty and Heroku will generate a random one: "
+            )
+        except EOFError:
+            bot = ""
+        if not bot:
+            bot = "heroku_" + str(random.randint(100000, 999999))
+        while bot:
             try:
                 if await self._check_bot(client, bot):
                     db.set("heroku.inline", "custom_bot", bot)
@@ -747,9 +770,11 @@ class Heroku:
                     break
                 else:
                     print("Bot username is occupied. Try again or leave it empty")
+                    bot = "heroku_" + str(random.randint(100000, 999999))
                     continue
             except Exception:
                 print("Something went wrong")
+                break
 
         await self.save_client_session(client)
         self.clients += [client]
@@ -821,11 +846,14 @@ class Heroku:
                 )
             )
 
-            user_choice = input(
-                "\033[0;96mUse QR code? [y/N]: \033[0m"
-                if self.arguments.tty
-                else "Use QR code? [y/N]: "
-            ).lower()
+            try:
+                user_choice = input(
+                    "\033[0;96mUse QR code? [y/N]: \033[0m"
+                    if self.arguments.tty
+                    else "Use QR code? [y/N]: "
+                ).lower()
+            except EOFError:
+                user_choice = "n"
 
             match user_choice:
                 case "y":
@@ -1248,8 +1276,8 @@ class Heroku:
 
         try:
             self.loop.run_until_complete(self._main())
-        except KeyboardInterrupt:
-            logging.info("KeyboardInterrupt received.")
+        except (KeyboardInterrupt, EOFError):
+            logging.info("Bot stopped (KeyboardInterrupt/EOFError).")
             self.loop.run_until_complete(self._shutdown_handler())
         except Exception as e:
             logging.exception("Unexpected exception in main loop: %s", e)
