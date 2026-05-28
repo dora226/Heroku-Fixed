@@ -619,3 +619,81 @@ class HerokuBackupMod(loader.Module):
 
         await utils.answer(message, self.strings["all_restored"])
         await self.invoke("restart", "-f", peer=message.peer_id)
+
+    @loader.command()
+    async def localbackups(self, message: Message):
+        """List all local backup files"""
+        backup_dir = Path(loader.LOADED_MODULES_DIR).parent / "backups"
+        if not backup_dir.exists():
+            await utils.answer(message, "<b>📂 No local backups found</b>")
+            return
+
+        files = sorted(backup_dir.glob("*.zip"), key=lambda f: f.stat().st_mtime, reverse=True)
+        if not files:
+            await utils.answer(message, "<b>📂 No local backups found</b>")
+            return
+
+        msg = "<b>📂 Local backups:</b>\n\n"
+        for i, f in enumerate(files[:20], 1):
+            size = f.stat().st_size / 1024
+            msg += f"<b>{i}.</b> <code>{f.name}</code> <i>({size:.1f} KB)</i>\n"
+
+        msg += f"\n💡 Use <code>.{self.get_prefix()} &lt;number&gt;</code> to restore"
+        await utils.answer(message, msg)
+
+    @loader.command()
+    async def restorelocal(self, message: Message):
+        """<number> | Restore from local backup by number"""
+        args = utils.get_args_raw(message)
+        if not args or not args.isdigit():
+            await utils.answer(message, "<b>❌ Specify backup number from <code>.localbackups</code></b>")
+            return
+
+        backup_dir = Path(loader.LOADED_MODULES_DIR).parent / "backups"
+        if not backup_dir.exists():
+            await utils.answer(message, "<b>📂 No local backups found</b>")
+            return
+
+        files = sorted(backup_dir.glob("*.zip"), key=lambda f: f.stat().st_mtime, reverse=True)
+        idx = int(args) - 1
+        if idx < 0 or idx >= len(files):
+            await utils.answer(message, "<b>❌ Invalid backup number</b>")
+            return
+
+        filepath = files[idx]
+        try:
+            data = filepath.read_bytes()
+            zipfile_bytes = io.BytesIO(data)
+            with zipfile.ZipFile(zipfile_bytes) as zf:
+                with zf.open("db.json") as f:
+                    db_data = orjson.loads(f.read().decode())
+
+                with contextlib.suppress(KeyError):
+                    db_data["heroku.inline"].pop("bot_token")
+
+                if not self._db.process_db_autofix(db_data):
+                    raise RuntimeError("Attempted to restore broken database")
+
+                self._db.clear()
+                self._db.update(**db_data)
+                self._db.save()
+
+                with zf.open("mods.zip") as modzip_bytes:
+                    with zipfile.ZipFile(io.BytesIO(modzip_bytes.read())) as modzip:
+                        with modzip.open("db_mods.json", "r") as modules:
+                            db_mods = orjson.loads(modules.read().decode())
+                            if isinstance(db_mods, dict):
+                                self.lookup("Loader").set("loaded_modules", db_mods)
+
+                        for name in modzip.namelist():
+                            if name == "db_mods.json":
+                                continue
+                            path = loader.LOADED_MODULES_PATH / Path(name).name
+                            with modzip.open(name, "r") as module:
+                                path.write_bytes(module.read())
+
+            await utils.answer(message, f"<b>✅ Restored from local backup:</b> <code>{filepath.name}</code>")
+            await self.invoke("restart", "-f", peer=message.peer_id)
+        except Exception as e:
+            logger.exception("Local restore failed")
+            await utils.answer(message, f"<b>❌ Failed to restore:</b> <code>{e}</code>")
