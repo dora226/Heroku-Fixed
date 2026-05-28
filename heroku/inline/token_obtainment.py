@@ -140,6 +140,30 @@ class TokenObtainment(InlineUnit):
         create_new_if_needed: bool = True,
         revoke_token: bool = False,
     ) -> bool:
+        # Check if bot token was passed via CLI arguments
+        try:
+            arguments = main.parse_arguments()
+            passed_token = getattr(arguments, "bot_token", None)
+            if passed_token:
+                logger.info("Token found in CLI arguments, validating...")
+                import aiohttp as _aiohttp
+                async with _aiohttp.ClientSession() as sess:
+                    try:
+                        async with sess.get(
+                            f"https://api.telegram.org/bot{passed_token}/getMe"
+                        ) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                if data.get("ok"):
+                                    logger.info("Token validation successful!")
+                                    self._token = passed_token
+                                    self._db.set("heroku.inline", "bot_token", passed_token)
+                                    return True
+                    except Exception as e:
+                        logger.error("Token validation failed: %s", e)
+        except Exception:
+            pass
+
         if self._token:
             return True
 

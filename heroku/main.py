@@ -447,6 +447,14 @@ def parse_arguments() -> dict:
         action="store_true",
         help="Disable git checks and updates",
     )
+    parser.add_argument(
+        "--bot-token",
+        "-bt",
+        dest="bot_token",
+        action="store",
+        type=str,
+        help="Your inline bot token (skip BotFather setup)",
+    )
     arguments = parser.parse_args()
     logging.debug(arguments)
     return arguments
