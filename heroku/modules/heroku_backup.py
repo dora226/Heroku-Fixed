@@ -38,6 +38,19 @@ class HerokuBackupMod(loader.Module):
 
     strings = {"name": "HerokuBackup"}
 
+    def _save_backup_local(self, archive_bytes: bytes, filename: str) -> str:
+        """Save backup archive locally and return filepath"""
+        backup_dir = Path(loader.LOADED_MODULES_DIR).parent / "backups"
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Ensure .zip extension
+        zip_name = Path(filename).stem + ".zip"
+        filepath = backup_dir / zip_name
+        
+        filepath.write_bytes(archive_bytes)
+        logger.info(f"Backup saved locally: {filepath}")
+        return str(filepath)
+
     async def client_ready(self):
         if not self.get("period"):
             await self.inline.bot.send_photo(
@@ -169,6 +182,13 @@ class HerokuBackupMod(loader.Module):
                 z.writestr("mods.zip", mods.getvalue())
 
             archive.name = f"backup-{datetime.datetime.now():%d-%m-%Y-%H-%M}.backup"
+
+            # Save locally
+            try:
+                local_path = self._save_backup_local(archive.getvalue(), archive.name)
+                logger.info(f"Local backup saved: {local_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save local backup: {e}")
 
             backup_topic_id = await utils.get_topic_id(self._db, "Backups")
             if not backup_topic_id:
@@ -513,6 +533,13 @@ class HerokuBackupMod(loader.Module):
             z.writestr("mods.zip", mods.getvalue())
 
         archive.name = f"heroku-{datetime.datetime.now():%d-%m-%Y-%H-%M}.backup"
+
+        # Save locally
+        try:
+            local_path = self._save_backup_local(archive.getvalue(), archive.name)
+            logger.info(f"Local backup saved: {local_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save local backup: {e}")
 
         backup_topic_id = await utils.get_topic_id(self._db, "Backups")
         if not backup_topic_id:
