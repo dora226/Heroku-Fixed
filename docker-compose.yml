@@ -1,14 +1,14 @@
 services:
-  worker:
-    container_name: heroku_ub
-    build:
-      context: .
+  heroku:
+    container_name: heroku-bot
+    build: .
     volumes:
-      - worker:/data
-    stop_signal: SIGINT
+      - heroku_data:/data
     restart: unless-stopped
     ports:
-      - "${EXTERNAL_PORT:-8080}:8080"
+      - "${PORT:-8888}:8888"
+    environment:
+      - DOCKER=true
 
 volumes:
-  worker:
+  heroku_data:
