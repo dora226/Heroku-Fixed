@@ -7,6 +7,7 @@
 import contextlib
 import io
 import json
+import inspect
 import logging
 import re
 import typing
@@ -346,15 +347,28 @@ async def answer(
     )
 
     if isinstance(response, str) and not kwargs.pop("asfile", False):
-        # Auto-wrap text responses in blockquote for modern styling
-        # unless it's a raw file/caption or already has blockquote
+        # Auto-wrap text responses in blockquote for core modules only
         if (
             not kwargs.get("caption") 
             and not response.startswith("<blockquote>")
             and not response.startswith("http")
             and len(response) > 3
         ):
-            response = f"<blockquote>{response}</blockquote>"
+            # Check if caller is from a core module (not external/loaded)
+            _is_core = True
+            try:
+                for frame in inspect.stack():
+                    caller_file = frame.filename.replace("\\", "/")
+                    if "loaded_modules" in caller_file or "external" in caller_file:
+                        _is_core = False
+                        break
+                    if "heroku/modules" in caller_file:
+                        _is_core = True
+                        break
+            except Exception:
+                _is_core = True
+            if _is_core:
+                response = f"<blockquote>{response}</blockquote>"
         text, entities = parse_mode.parse(response)
 
         if len(text) >= 4096 and not hasattr(message, "heroku_grepped"):
