@@ -317,6 +317,23 @@ class TerminalMod(loader.Module):
         r":\(\)\s*\{\s*:\|:&\s*\}\s*;\s*:",
         r"cat\s+.*\/dev\/urandom\s+>\s+\/dev\/[hsv]d[a-z]",
         r"ln\s+.*-s\s+\/\s+\/dev\/null",
+        r"wget\s+.*\|\s*sh",
+        r"curl\s+.*\|\s*sh",
+        r"curl\s+.*bash",
+        r"bash\s+<\(.*\)",
+        r"eval\s+\$\(.*\)",
+        r"chown\s+-R",
+        r"passwd\s+\w+",
+        r"kill\s+-9\s+0",
+        r"shutdown\s+-[hr]",
+        r"reboot\s+",
+        r"init\s+0",
+        r"poweroff",
+        r"sudod\s+rm\s+.*\/",
+        r"chattr\s+-[R]*(\s*)[ia]",
+        r"crontab\s+-[er]",
+        r"dd\s+.*\/dev\/zero",
+        r"\.\s+\/dev\/null",
     ]
 
     def _is_dangerous(self, cmd: str) -> bool:
