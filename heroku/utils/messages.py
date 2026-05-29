@@ -408,11 +408,14 @@ async def answer(
 
                 return result
 
-        result = await (message.edit if edit else message.respond)(
-            text,
-            parse_mode=lambda t: (t, entities),
-            **kwargs,
-        )
+        try:
+            result = await (message.edit if edit else message.respond)(
+                text,
+                parse_mode=lambda t: (t, entities),
+                **kwargs,
+            )
+        except herokutl.errors.rpcerrorlist.MessageNotModifiedError:
+            result = message
     elif isinstance(response, Message):
         if message.media is None and (
             response.media is None

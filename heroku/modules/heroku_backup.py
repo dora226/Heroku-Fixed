@@ -53,7 +53,8 @@ class HerokuBackupMod(loader.Module):
 
     async def client_ready(self):
         if not self.get("period"):
-            await self.inline.bot.send_photo(
+            if self.inline and self.inline.bot:
+                await self.inline.bot.send_photo(
                 self.tg_id,
                 photo="https://raw.githubusercontent.com/coddrago/assets/refs/heads/main/heroku/unit_alpha.png",
                 caption=self.strings("period"),
@@ -195,21 +196,22 @@ class HerokuBackupMod(loader.Module):
                 logger.error("Backups topic not found in database")
                 return
 
-            await self.inline.bot.send_document(
-                int(f"-100{self._content_channel_id}"),
-                BufferedInputFile(archive.getvalue(), filename=archive.name),
-                reply_markup=self.inline.generate_markup(
-                    [
+            if self.inline and self.inline.bot:
+                await self.inline.bot.send_document(
+                    int(f"-100{self._content_channel_id}"),
+                    BufferedInputFile(archive.getvalue(), filename=archive.name),
+                    reply_markup=self.inline.generate_markup(
                         [
-                            {
-                                "text": "↪️ Restore this",
-                                "data": "heroku/backupall/restore/confirm",
-                            }
+                            [
+                                {
+                                    "text": "↪️ Restore this",
+                                    "data": "heroku/backupall/restore/confirm",
+                                }
+                            ]
                         ]
-                    ]
-                ),
-                message_thread_id=backup_topic_id,
-            )
+                    ),
+                    message_thread_id=backup_topic_id,
+                )
 
             self.set("last_backup", round(time.time()))
         except loader.StopLoop:
@@ -550,24 +552,28 @@ class HerokuBackupMod(loader.Module):
             )
             return
 
-        backup_msg = await self.inline.bot.send_document(
-            int(f"-100{self._content_channel_id}"),
-            BufferedInputFile(archive.getvalue(), filename=archive.name),
-            caption=self.strings["backupall_info"].format(
-                prefix=utils.escape_html(self.get_prefix()),
-            ),
-            reply_markup=self.inline.generate_markup(
-                [
+        if self.inline and self.inline.bot:
+            backup_msg = await self.inline.bot.send_document(
+                int(f"-100{self._content_channel_id}"),
+                BufferedInputFile(archive.getvalue(), filename=archive.name),
+                caption=self.strings["backupall_info"].format(
+                    prefix=utils.escape_html(self.get_prefix()),
+                ),
+                reply_markup=self.inline.generate_markup(
                     [
-                        {
-                            "text": "↪️ Restore this",
-                            "data": "heroku/backupall/restore/confirm",
-                        },
+                        [
+                            {
+                                "text": "↪️ Restore this",
+                                "data": "heroku/backupall/restore/confirm",
+                            },
+                        ],
                     ],
-                ],
-            ),
-            message_thread_id=backup_topic_id,
-        )
+                ),
+                message_thread_id=backup_topic_id,
+            )
+        else:
+            await utils.answer(message, "<b>Backup saved locally only</b>")
+            return
 
         await utils.answer(
             message,
