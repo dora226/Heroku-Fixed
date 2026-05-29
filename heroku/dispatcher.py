@@ -690,6 +690,24 @@ class CommandDispatcher:
         # Will be used to determine, which client caused logging messages
         # parsed via inspect.stack()
         _heroku_client_id_logging_tag = copy.copy(self.client.tg_id)  # noqa: F841
+        
+        # Rate limiting: prevent command spam
+        try:
+            sender = message.sender_id
+            if sender and not getattr(message, "_heroku_ratelimit_skip", False):
+                now = time.time()
+                rl = self.client._heroku_ratelimit if hasattr(self.client, '_heroku_ratelimit') else {}
+                if sender not in rl:
+                    rl[sender] = []
+                rl[sender] = [t for t in rl[sender] if now - t < 2]
+                if len(rl[sender]) > 7:
+                    logger.warning(f"Rate limit triggered for {sender}")
+                    return
+                rl[sender].append(now)
+                self.client._heroku_ratelimit = rl
+        except Exception:
+            pass
+        
         try:
             await loader._call_with_external_context(func, message)
         except Exception as e:
