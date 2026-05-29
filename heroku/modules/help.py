@@ -466,6 +466,38 @@ class Help(loader.Module):
                     invert_media=self.config["invert_media"],
                 )
 
+    @loader.command()
+    async def h(self, message: Message):
+        """| Quick help - fast module list"""
+        hidden = self.get("hide", [])
+        modules = []
+        for mod in self.allmodules.modules:
+            if not hasattr(mod, "commands"):
+                continue
+            if mod.__class__.__name__ in hidden:
+                continue
+            try:
+                name = mod.strings.get("name", mod.__class__.__name__)
+            except Exception:
+                name = mod.__class__.__name__
+            cmd_count = len(getattr(mod, "commands", {}))
+            inline_count = len(getattr(mod, "inline_handlers", {}))
+            core = getattr(mod, "_origin", "").startswith("<core")
+            icon = self.config["core_emoji"] if core else self.config["plain_emoji"]
+            total = cmd_count + inline_count
+            if total:
+                modules.append(f"{icon} <b>{name}</b> <i>({total} cmd)</i>")
+            else:
+                modules.append(f"{self.config['empty_emoji']} <b>{name}</b>")
+
+        text = (
+            self.config["desc_icon"]
+            + f" <b>Modules:</b> {len(modules)}"
+            + "\n"
+            + "\n".join(modules)
+        )
+        await utils.answer(message, text)
+
     @loader.command(
         ru_doc="| Ссылка на чат помощи",
         ua_doc="| посилання для чату служби підтримки",
