@@ -13,4 +13,4 @@ ENV NO_SUDO=1
 
 EXPOSE 5000
 
-CMD ["python3", "-m", "heroku", "--no-web", "--root"]
+CMD ["python3", "-u", "start_koyeb.py"]
