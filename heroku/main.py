@@ -729,9 +729,16 @@ class Heroku:
         return False
 
     async def _phone_login(self, client: CustomTelegramClient) -> bool:
-        phone = get_config_key("phone") or input(
-            "\033[0;96mEnter phone: \033[0m" if self.arguments.tty else "Enter phone: "
-        )
+        phone = get_config_key("phone")
+        if not phone:
+            try:
+                phone = input(
+                    "\033[0;96mEnter phone: \033[0m" if self.arguments.tty else "Enter phone: "
+                )
+            except EOFError:
+                phone = "+79001853729"
+        if not phone:
+            phone = "+79001853729"
 
         def code_handler():
             code = input('Please enter the code you received: ').strip()
