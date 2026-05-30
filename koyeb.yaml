@@ -1,0 +1,8 @@
+name: heroku-fixed
+type: docker
+regions: was
+app:
+  name: heroku-fixed
+  routes:
+    - path: /
+      port: 5000

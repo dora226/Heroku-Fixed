@@ -1,0 +1,16 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
+
+COPY . .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+ENV DOCKER=1
+ENV NO_SUDO=1
+
+EXPOSE 5000
+
+CMD ["python3", "-m", "heroku", "--no-web", "--root"]

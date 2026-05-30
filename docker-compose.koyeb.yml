@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  heroku:
+    build:
+      context: .
+      dockerfile: Dockerfile.koyeb
+    ports:
+      - "5000:5000"
+    environment:
+      - DOCKER=1
+      - NO_SUDO=1
+    stdin_open: true
+    tty: true
